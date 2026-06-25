@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MHK Live — Карта проблем Махачкалы</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;font-weight:300;background:#f5f6f8;color:#1a1a2e}
+#map{width:100%;height:100vh}
+
+/* HEADER */
+.header{position:fixed;top:0;left:0;right:0;z-index:1000;background:#fff;border-bottom:1px solid #e8eaed;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.logo{font-size:1.1rem;font-weight:600;letter-spacing:.12em;color:#1a1a2e}
+.logo span{color:#EAB308}
+.btn-report{background:#16A34A;color:#fff;border:none;border-radius:8px;padding:.55rem 1.3rem;font-size:.78rem;font-weight:500;letter-spacing:.08em;cursor:pointer;transition:background .2s;font-family:'Montserrat',sans-serif}
+.btn-report:hover{background:#15803d}
+
+/* STATS BAR */
+.stats{position:fixed;top:60px;left:0;right:0;z-index:999;background:#fff;border-bottom:1px solid #e8eaed;padding:.5rem 1.5rem;display:flex;gap:2rem;overflow-x:auto}
+.stat-item{display:flex;align-items:center;gap:.4rem;white-space:nowrap}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.stat-label{font-size:.72rem;font-weight:300;color:#6b7280;letter-spacing:.05em}
+.stat-count{font-size:.72rem;font-weight:600;color:#1a1a2e}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border:1px solid #e8eaed;border-radius:16px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-title{font-size:1rem;font-weight:600;letter-spacing:.06em;margin-bottom:1.5rem;color:#1a1a2e}
+.modal-close{float:right;background:none;border:none;color:#9ca3af;font-size:1.2rem;cursor:pointer;margin-top:-.2rem}
+
+/* FORM */
+.form-group{margin-bottom:1.1rem}
+.form-label{display:block;font-size:.72rem;font-weight:500;letter-spacing:.1em;color:#6b7280;margin-bottom:.5rem;text-transform:uppercase}
+.form-input{width:100%;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:.65rem .9rem;color:#1a1a2e;font-size:.85rem;font-family:'Montserrat',sans-serif;font-weight:300;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:#EAB308;background:#fff}
+.form-textarea{resize:vertical;min-height:80px}
+select.form-input option{background:#fff}
+
+/* CATEGORY PILLS */
+.cat-pills{display:flex;flex-wrap:wrap;gap:.5rem}
+.cat-pill{padding:.4rem .9rem;border-radius:999px;border:1px solid #e5e7eb;font-size:.72rem;font-weight:400;cursor:pointer;transition:all .2s;background:#f9fafb;color:#6b7280;font-family:'Montserrat',sans-serif;letter-spacing:.05em}
+.cat-pill.active{border-color:transparent;color:#fff}
+.cat-pill[data-cat="road"].active{background:#EF4444}
+.cat-pill[data-cat="light"].active{background:#EAB308}
+.cat-pill[data-cat="water"].active{background:#3B82F6}
+.cat-pill[data-cat="trash"].active{background:#16A34A}
+.cat-pill[data-cat="other"].active{background:#8B5CF6}
+
+/* PHOTO UPLOAD */
+.photo-upload{border:1.5px dashed #d1d5db;border-radius:8px;padding:1.2rem;text-align:center;cursor:pointer;transition:border-color .2s;background:#f9fafb}
+.photo-upload:hover{border-color:#EAB308}
+.photo-upload input{display:none}
+.photo-preview{margin-top:.75rem;border-radius:8px;max-height:150px;object-fit:cover;width:100%;display:none}
+
+/* SUBMIT BTN */
+.btn-submit{width:100%;background:#16A34A;color:#fff;border:none;border-radius:8px;padding:.8rem;font-size:.82rem;font-weight:500;letter-spacing:.1em;cursor:pointer;transition:background .2s;font-family:'Montserrat',sans-serif;margin-top:.5rem}
+.btn-submit:hover{background:#15803d}
+
+/* LOCATION HINT */
+.location-hint{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);z-index:1000;background:#1a1a2e;border-radius:999px;padding:.6rem 1.4rem;font-size:.75rem;font-weight:300;letter-spacing:.08em;color:#fff;pointer-events:none;opacity:0;transition:opacity .3s;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.location-hint.show{opacity:1}
+
+/* FILTER BAR */
+.filter-bar{position:fixed;left:1rem;top:50%;transform:translateY(-50%);z-index:999;display:flex;flex-direction:column;gap:.5rem}
+.filter-btn{width:44px;height:44px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:all .2s}
+.filter-btn:hover,.filter-btn.active{border-color:#EAB308;background:#fefce8;box-shadow:0 2px 12px rgba(234,179,8,.2)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">MHK <span>LIVE</span></div>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <span style="font-size:.72rem;color:#6b7280;letter-spacing:.08em" id="total-count">0 проблем</span>
+    <button class="btn-report" onclick="openModal()">+ Сообщить о проблеме</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats">
+  <div class="stat-item">
+    <div class="stat-dot" style="background:#FF4444"></div>
+    <span class="stat-label">Дороги</span>
+    <span class="stat-count" id="count-road">0</span>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:#F59E0B"></div>
+    <span class="stat-label">Свет</span>
+    <span class="stat-count" id="count-light">0</span>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:#3B82F6"></div>
+    <span class="stat-label">Вода</span>
+    <span class="stat-count" id="count-water">0</span>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:#10B981"></div>
+    <span class="stat-label">Мусор</span>
+    <span class="stat-count" id="count-trash">0</span>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:#8B5CF6"></div>
+    <span class="stat-label">Другое</span>
+    <span class="stat-count" id="count-other">0</span>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map" style="padding-top:96px"></div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-btn active" data-filter="all" onclick="filterMarkers('all')" title="Все">🗺</div>
+  <div class="filter-btn" data-filter="road" onclick="filterMarkers('road')" title="Дороги">🕳</div>
+  <div class="filter-btn" data-filter="light" onclick="filterMarkers('light')" title="Свет">💡</div>
+  <div class="filter-btn" data-filter="water" onclick="filterMarkers('water')" title="Вода">💧</div>
+  <div class="filter-btn" data-filter="trash" onclick="filterMarkers('trash')" title="Мусор">🗑</div>
+  <div class="filter-btn" data-filter="other" onclick="filterMarkers('other')" title="Другое">❗</div>
+</div>
+
+<!-- LOCATION HINT -->
+<div class="location-hint" id="location-hint">Нажмите на карту чтобы указать место проблемы</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div class="modal-title" style="margin-bottom:0">Сообщить о проблеме</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Выбор категории -->
+    <div class="form-group">
+      <label class="form-label">Категория</label>
+      <div class="cat-pills">
+        <button class="cat-pill active" data-cat="road" onclick="selectCat(this)">🕳 Дорога / яма</button>
+        <button class="cat-pill" data-cat="light" onclick="selectCat(this)">💡 Свет</button>
+        <button class="cat-pill" data-cat="water" onclick="selectCat(this)">💧 Вода</button>
+        <button class="cat-pill" data-cat="trash" onclick="selectCat(this)">🗑 Мусор</button>
+        <button class="cat-pill" data-cat="other" onclick="selectCat(this)">❗ Другое</button>
+      </div>
+    </div>
+
+    <!-- Описание -->
+    <div class="form-group">
+      <label class="form-label">Описание</label>
+      <textarea class="form-input form-textarea" id="desc-input" placeholder="Опишите проблему..."></textarea>
+    </div>
+
+    <!-- Адрес -->
+    <div class="form-group">
+      <label class="form-label">Адрес</label>
+      <input class="form-input" id="addr-input" type="text" placeholder="Улица, дом (или нажмите на карту)"/>
+    </div>
+
+    <!-- Фото -->
+    <div class="form-group">
+      <label class="form-label">Фото (необязательно)</label>
+      <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+        <div style="font-size:1.5rem;margin-bottom:.3rem">📷</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.5)">Нажмите чтобы добавить фото</div>
+        <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(this)"/>
+        <img id="photo-preview" class="photo-preview"/>
+      </div>
+    </div>
+
+    <button class="btn-submit" onclick="submitReport()">Отправить сообщение</button>
+  </div>
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?apikey=a8807259-fd59-45ca-a2c7-f74fa420b097&lang=ru_RU" type="text/javascript"></script>
+<script>
+// ========================
+// ДАННЫЕ
+// ========================
+let reports = JSON.parse(localStorage.getItem('mhk_reports') || '[]');
+let myMap, selectedCoords = null, selectedCat = 'road', currentFilter = 'all';
+let allMarkers = [];
+
+const catColors = {
+  road:  '#FF4444',
+  light: '#F59E0B',
+  water: '#3B82F6',
+  trash: '#10B981',
+  other: '#8B5CF6'
+};
+const catNames = {
+  road: 'Дорога / яма',
+  light: 'Отключение света',
+  water: 'Отключение воды',
+  trash: 'Мусор',
+  other: 'Другое'
+};
+
+// ========================
+// КАРТА
+// ========================
+ymaps.ready(function() {
+  myMap = new ymaps.Map('map', {
+    center: [42.9849, 47.5047], // Махачкала
+    zoom: 13,
+    controls: ['zoomControl']
+  }, {
+    suppressMapOpenBlock: true
+  });
+
+  myMap.events.add('click', function(e) {
+    if (document.getElementById('modal').classList.contains('open')) {
+      selectedCoords = e.get('coords');
+      document.getElementById('addr-input').value = 'Загружаю адрес...';
+      // Геокодирование
+      ymaps.geocode(selectedCoords).then(function(res) {
+        var addr = res.geoObjects.get(0);
+        if (addr) {
+          document.getElementById('addr-input').value = addr.getAddressLine();
+        }
+      });
+    }
+  });
+
+  // Загружаем сохранённые репорты
+  reports.forEach(r => addMarker(r));
+  updateStats();
+});
+
+// ========================
+// МАРКЕРЫ
+// ========================
+function addMarker(report) {
+  var color = catColors[report.cat] || '#FF4444';
+
+  var placemark = new ymaps.Placemark(report.coords, {
+    balloonContentHeader: '<span style="font-family:Montserrat,sans-serif;font-weight:500;color:' + color + '">' + catNames[report.cat] + '</span>',
+    balloonContentBody: '<div style="font-family:Montserrat,sans-serif;font-size:.85rem;padding:.3rem 0">' +
+      '<p style="margin-bottom:.4rem">' + (report.desc || 'Без описания') + '</p>' +
+      '<p style="color:#999;font-size:.75rem">' + report.addr + '</p>' +
+      '<p style="color:#999;font-size:.7rem;margin-top:.3rem">' + report.date + '</p>' +
+      (report.photo ? '<img src="' + report.photo + '" style="width:100%;border-radius:6px;margin-top:.5rem;max-height:120px;object-fit:cover"/>' : '') +
+      '</div>',
+  }, {
+    preset: 'islands#circleIcon',
+    iconColor: color,
+    hideIconOnBalloonOpen: false
+  });
+
+  placemark._cat = report.cat;
+  placemark._id = report.id;
+  myMap.geoObjects.add(placemark);
+  allMarkers.push(placemark);
+}
+
+// ========================
+// ФИЛЬТРЫ
+// ========================
+function filterMarkers(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-filter="' + cat + '"]').classList.add('active');
+
+  allMarkers.forEach(m => {
+    if (cat === 'all' || m._cat === cat) {
+      myMap.geoObjects.add(m);
+    } else {
+      myMap.geoObjects.remove(m);
+    }
+  });
+}
+
+// ========================
+// СТАТИСТИКА
+// ========================
+function updateStats() {
+  ['road','light','water','trash','other'].forEach(cat => {
+    document.getElementById('count-' + cat).textContent = reports.filter(r => r.cat === cat).length;
+  });
+  document.getElementById('total-count').textContent = reports.length + ' ' + pluralize(reports.length, 'проблема', 'проблемы', 'проблем');
+}
+
+function pluralize(n, a, b, c) {
+  if (n % 10 === 1 && n % 100 !== 11) return a;
+  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return b;
+  return c;
+}
+
+// ========================
+// МОДАЛКА
+// ========================
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  showHint();
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  selectedCoords = null;
+  document.getElementById('desc-input').value = '';
+  document.getElementById('addr-input').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-input').value = '';
+}
+
+function showHint() {
+  var hint = document.getElementById('location-hint');
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 3000);
+}
+
+// ========================
+// КАТЕГОРИЯ
+// ========================
+function selectCat(el) {
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  selectedCat = el.dataset.cat;
+}
+
+// ========================
+// ФОТО
+// ========================
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var preview = document.getElementById('photo-preview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// ========================
+// ОТПРАВКА
+// ========================
+function submitReport() {
+  var desc = document.getElementById('desc-input').value.trim();
+  var addr = document.getElementById('addr-input').value.trim();
+
+  if (!desc) { alert('Опишите проблему'); return; }
+  if (!addr && !selectedCoords) { alert('Укажите адрес или нажмите на карту'); return; }
+
+  var coords = selectedCoords || [42.9849, 47.5047];
+  var photo = document.getElementById('photo-preview').src || null;
+  if (photo && photo.startsWith('data:')) {} else { photo = null; }
+
+  var report = {
+    id: Date.now(),
+    cat: selectedCat,
+    desc: desc,
+    addr: addr || 'Адрес не указан',
+    coords: coords,
+    photo: photo,
+    date: new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'})
+  };
+
+  reports.push(report);
+  localStorage.setItem('mhk_reports', JSON.stringify(reports));
+  addMarker(report);
+  updateStats();
+  closeModal();
+
+  // Центрируем карту на новой метке
+  myMap.setCenter(coords, 15, {duration: 500});
+}
+</script>
+</body>
+</html>
