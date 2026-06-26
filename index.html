@@ -138,9 +138,49 @@ function formatPhone(input) {
     var u = localStorage.getItem('mhk_user_v2');
     if (u) {
       document.getElementById('reg-overlay').style.display = 'none';
+      showUserMenu(JSON.parse(u));
     }
   } catch(e) {}
 })();
+
+function showUserMenu(user) {
+  var initials = user.name.trim().split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
+  var firstName = user.name.trim().split(' ')[0];
+  document.getElementById('user-avatar').textContent  = initials;
+  document.getElementById('user-avatar2').textContent = initials;
+  document.getElementById('user-shortname').textContent = firstName;
+  document.getElementById('user-fullname').textContent  = user.name;
+  document.getElementById('user-phone').textContent     = user.phone;
+  document.getElementById('user-menu').style.display = 'block';
+}
+
+function toggleUserMenu() {
+  var dd = document.getElementById('user-dropdown');
+  var btn = document.getElementById('user-btn');
+  var isOpen = dd.style.display === 'block';
+  dd.style.display = isOpen ? 'none' : 'block';
+  btn.style.borderColor = isOpen ? '#e5e7eb' : '#EAB308';
+
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', closeUserMenu);
+    }, 0);
+  }
+}
+
+function closeUserMenu(e) {
+  var menu = document.getElementById('user-menu');
+  if (!menu.contains(e.target)) {
+    document.getElementById('user-dropdown').style.display = 'none';
+    document.getElementById('user-btn').style.borderColor = '#e5e7eb';
+    document.removeEventListener('click', closeUserMenu);
+  }
+}
+
+function logoutUser() {
+  try { localStorage.removeItem('mhk_user_v2'); } catch(e) {}
+  location.reload();
+}
 
 function registerUser() {
   var name  = document.getElementById('reg-name').value.trim();
@@ -171,6 +211,7 @@ function registerUser() {
 
   setTimeout(function() {
     document.getElementById('reg-overlay').style.display = 'none';
+    showUserMenu(user);
     btn.textContent = 'Войти на карту →';
     btn.disabled = false;
   }, 600);
@@ -183,6 +224,35 @@ function registerUser() {
   <div style="display:flex;align-items:center;gap:1rem">
     <span style="font-size:.72rem;color:#6b7280;letter-spacing:.08em" id="total-count">0 проблем</span>
     <button class="btn-report" onclick="openModal()">+ Сообщить о проблеме</button>
+
+    <!-- ЛИЧНЫЙ КАБИНЕТ -->
+    <div id="user-menu" style="position:relative;display:none">
+      <button id="user-btn" onclick="toggleUserMenu()"
+        style="display:flex;align-items:center;gap:.5rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;padding:.4rem .8rem;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s"
+        onmouseover="this.style.borderColor='#EAB308'" onmouseout="if(!document.getElementById('user-dropdown').classList.contains('open'))this.style.borderColor='#e5e7eb'">
+        <div id="user-avatar" style="width:28px;height:28px;border-radius:50%;background:#EAB308;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#1a1a2e;flex-shrink:0"></div>
+        <span id="user-shortname" style="font-size:.78rem;font-weight:500;color:#1a1a2e;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+
+      <!-- ДРОПДАУН -->
+      <div id="user-dropdown"
+        style="position:absolute;right:0;top:calc(100% + .5rem);background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:1rem;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.12);display:none;z-index:9999">
+        <div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.9rem;border-bottom:1px solid #f1f5f9;margin-bottom:.9rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:#EAB308;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#1a1a2e;flex-shrink:0" id="user-avatar2"></div>
+          <div>
+            <div id="user-fullname" style="font-size:.82rem;font-weight:600;color:#1a1a2e;line-height:1.3"></div>
+            <div id="user-phone" style="font-size:.72rem;color:#6b7280;margin-top:.15rem"></div>
+          </div>
+        </div>
+        <button onclick="logoutUser()"
+          style="width:100%;background:#fff;border:1.5px solid #fee2e2;border-radius:8px;padding:.5rem;font-size:.75rem;font-weight:500;color:#ef4444;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s"
+          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
+          Выйти
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
